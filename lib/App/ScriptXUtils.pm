@@ -6,7 +6,7 @@ package App::ScriptXUtils;
 # VERSION
 
 use 5.010001;
-use strict;
+use strict 'subs', 'vars';
 use warnings;
 
 use Module::List::Tiny;
@@ -30,16 +30,15 @@ my $res = gen_read_table_func(
 
         my @rows;
         for my $mod (sort keys %$mods) {
-            $mod =~ /\AScriptX::(?=[a-z])(.+)/ or next;
-            my $row = {plugin=>$1};
+            $mod =~ /\AScriptX::(.+)/ or next;
+            my $plugin = $1;
+            $plugin =~ /Base$/ and next; # by convention, this is base class only
+            my $row = {plugin=>$plugin};
             (my $mod_pm = "$mod.pm") =~ s!::!/!g;
             require $mod_pm;
-            #my $meta = $mod->meta;
-            #$row->{summary} = $meta->{summary};
+            my $meta = {}; eval { $meta = $mod->meta };
+            $row->{summary} = $meta->{summary};
             $row->{dist} = ${"$mod\::DIST"};
-            #$row->{v} = $meta->{v};
-            #$row->{prio} = $meta->{prio};
-            #$row->{might_fail} = $meta->{might_fail};
             push @rows, $row;
         }
         return {data=>\@rows};
@@ -51,14 +50,14 @@ my $res = gen_read_table_func(
                 pos => 0,
                 sortable => 1,
             },
-            #summary => {
-            #    schema => 'str*',
-            #    pos => 1,
-            #    sortable => 1,
-            #},
-            dist => {
+            summary => {
                 schema => 'str*',
                 pos => 1,
+                sortable => 1,
+            },
+            dist => {
+                schema => 'str*',
+                pos => 2,
                 sortable => 1,
             },
         },
